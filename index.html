@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="熊熊阿吉生字">
-    
     <title>熊熊 阿吉寶可夢生字大考驗</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
@@ -20,7 +18,7 @@
             overflow: hidden;
             height: 100vh; height: -webkit-fill-available;
             user-select: none; -webkit-user-select: none;
-            touch-action: none; /* 防止滑動 */
+            /* 移除 body 的 touch-action: none，改在 canvas 層處理，以免影響選單捲動 */
         }
 
         /* --- 第 1 層：圖鑑選單介面 --- */
@@ -28,9 +26,9 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #eef2f5;
             display: flex; flex-direction: column;
-            z-index: 20; /* 在最上層 */
-            overflow-y: auto; /* 允許選單上下捲動 */
-            -webkit-overflow-scrolling: touch; /* iOS 捲動流暢 */
+            z-index: 20;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             padding-bottom: 40px;
         }
 
@@ -51,10 +49,10 @@
 
         #pokemon-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 這裡設定一行幾個，手機設3個剛好 */
+            grid-template-columns: repeat(3, 1fr);
             gap: 15px;
             padding: 20px;
-            touch-action: pan-y; /* 允許選單區域垂直捲動 */
+            min-height: min-content;
         }
 
         .poke-card {
@@ -68,7 +66,6 @@
         }
         .poke-card:active { transform: scale(0.95); }
         
-        /* 新增：編號樣式 */
         .poke-id { 
             position: absolute; top: 5px; left: 8px; 
             font-size: 10px; color: #999; font-family: monospace; font-weight: bold;
@@ -77,35 +74,27 @@
         .poke-img {
             width: 80px; height: 80px; object-fit: contain;
             transition: filter 0.3s;
-            margin-top: 10px; /* 為了避開編號稍微往下 */
+            margin-top: 10px;
         }
 
-        /* 未解鎖樣式：全黑剪影 */
-        .locked .poke-img {
-            filter: brightness(0) opacity(0.8); 
-        }
-        .locked .poke-name {
-            color: #ccc;
-        }
+        .locked .poke-img { filter: brightness(0) opacity(0.8); }
+        .locked .poke-name { color: #ccc; }
         
-        /* 已解鎖樣式 */
         .unlocked .poke-img {
             filter: none;
-            filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6)); /* 金色光暈 */
+            filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6));
         }
-        .unlocked .poke-name {
-            color: #333; font-weight: bold;
-        }
+        .unlocked .poke-name { color: #333; font-weight: bold; }
         .unlocked::after {
             content: "👑"; position: absolute; top: -5px; right: -5px; font-size: 20px;
         }
 
         .poke-name { margin-top: 5px; font-size: 14px; text-align: center; }
 
-        /* --- 第 2 層：遊戲練習介面 (預設隱藏) --- */
+        /* --- 第 2 層：遊戲練習介面 --- */
         #game-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; /* 隱藏 */
+            display: none;
             flex-direction: column; align-items: center; justify-content: center;
             background-color: #f0f4f8;
             z-index: 10;
@@ -117,6 +106,8 @@
             overflow: hidden; background: white;
             position: relative;
             margin: 10px;
+            /* 關鍵修正：強制在此區域停用瀏覽器預設手勢，解決 iPhone 畫筆失效問題 */
+            touch-action: none;
         }
 
         .ui-overlay {
@@ -127,494 +118,4 @@
         }
 
         .game-header {
-            text-align: center; background: rgba(255,255,255,0.9);
-            border-radius: 15px; padding: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .game-header h2 { margin: 0; font-size: 24px; color: #333; }
-
-        .game-footer {
-            text-align: center; pointer-events: auto; padding-bottom: 20px;
-            display: flex; justify-content: center; align-items: center; gap: 10px;
-        }
-
-        .btn {
-            background: #ffcb05; border: 3px solid #3b4cca; color: #3b4cca;
-            padding: 8px 20px; font-size: 16px; font-weight: bold; border-radius: 50px;
-            cursor: pointer; box-shadow: 0 4px 0 #2a3693;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #2a3693; }
-        .btn-red { background: #fff; border-color: #ff5555; color: #ff5555; box-shadow: 0 4px 0 #cc0000; }
-        .btn-red:active { box-shadow: 0 0 0 #cc0000; }
-
-        #progress-bar {
-            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
-            width: 200px; height: 10px; background: #eee; border-radius: 10px;
-            border: 2px solid #ccc; overflow: hidden;
-        }
-        #progress-fill { height: 100%; width: 0%; background: #4caf50; transition: width 0.2s; }
-
-        /* --- 獎勵彈窗 --- */
-        #reward-popup {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 100;
-            display: none; justify-content: center; align-items: center;
-            animation: fadeIn 0.3s;
-        }
-        .reward-card {
-            background: white; padding: 25px; border-radius: 25px;
-            text-align: center; width: 80%; max-width: 320px;
-            box-shadow: 0 0 30px rgba(255, 203, 5, 0.5);
-            animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 5px solid #ffcb05;
-        }
-        .reward-card img { width: 220px; height: 220px; object-fit: contain; }
-        .reward-text { font-size: 24px; font-weight: bold; color: #d32f2f; margin: 10px 0; }
-        .reward-sub { font-size: 16px; color: #555; margin-bottom: 20px; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes popUp { from { transform: scale(0.5); } to { transform: scale(1); } }
-
-    </style>
-</head>
-<body>
-
-    <div id="menu-layer">
-        <div class="menu-header">
-            <h1>🐻 熊熊 阿吉 👸<br>寶可夢生字大考驗</h1>
-            <div class="menu-subtitle">點擊黑色影子開始挑戰！</div>
-        </div>
-        <div id="pokemon-grid">
-            </div>
-    </div>
-
-    <div id="game-layer">
-        <div id="canvas-container">
-            <div class="ui-overlay">
-                <div class="game-header">
-                    <h2 id="question-text">題目</h2>
-                </div>
-                <div id="progress-bar"><div id="progress-fill"></div></div>
-                <div class="game-footer">
-                    <button class="btn btn-red" onclick="returnToMenu()">放棄</button>
-                    <button class="btn btn-red" onclick="resetCanvas()">重寫</button>
-                    <button class="btn" id="next-btn" onclick="nextStep()">下一字</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="reward-popup">
-        <div class="reward-card">
-            <h2 style="color:#ffcb05; -webkit-text-stroke:1px #2a3693; margin:0;">CONGRATS!</h2>
-            <img id="reward-img" src="" alt="">
-            <div class="reward-text" id="reward-msg">捕獲 皮卡丘 !</div>
-            <button class="btn" onclick="closeRewardAndReturn()">太棒了!</button>
-        </div>
-    </div>
-
-<script>
-    // --- 遊戲資料 (50隻) ---
-    // imageId 對應 PokeAPI 編號
-    const vocabulary = [
-        // 必備 & 熱門
-        { word: "皮卡丘", zhuyin: ["ㄆㄧˊ","ㄎㄚˇ","ㄑㄧㄡ"], color: "#F7D02C", imageId: "25", id: 25 },
-        { word: "路卡利歐", zhuyin: ["ㄌㄨˋ","ㄎㄚˇ","ㄌㄧˋ","ㄡ"], color: "#448CCB", imageId: "448", id: 448 },
-        // 伊布家族
-        { word: "伊布", zhuyin: ["ㄧ","ㄅㄨˋ"], color: "#A8A77A", imageId: "133", id: 133 },
-        { word: "水伊布", zhuyin: ["ㄕㄨㄟˇ","ㄧ","ㄅㄨˋ"], color: "#6890F0", imageId: "134", id: 134 },
-        { word: "雷伊布", zhuyin: ["ㄌㄟˊ","ㄧ","ㄅㄨˋ"], color: "#F8D030", imageId: "135", id: 135 },
-        { word: "火伊布", zhuyin: ["ㄏㄨㄛˇ","ㄧ","ㄅㄨˋ"], color: "#F08030", imageId: "136", id: 136 },
-        { word: "太陽伊布", zhuyin: ["ㄊㄞˋ","ㄧㄤˊ","ㄧ","ㄅㄨˋ"], color: "#A890F0", imageId: "196", id: 196 },
-        { word: "月亮伊布", zhuyin: ["ㄩㄝˋ","ㄌㄧㄤˋ","ㄧ","ㄅㄨˋ"], color: "#705848", imageId: "197", id: 197 },
-        { word: "葉伊布", zhuyin: ["ㄧㄝˋ","ㄧ","ㄅㄨˋ"], color: "#78C850", imageId: "470", id: 470 },
-        { word: "冰伊布", zhuyin: ["ㄅㄧㄥ","ㄧ","ㄅㄨˋ"], color: "#98D8D8", imageId: "471", id: 471 },
-        { word: "仙子伊布", zhuyin: ["ㄒㄧㄢ","ㄗˇ","ㄧ","ㄅㄨˋ"], color: "#F85888", imageId: "700", id: 700 },
-        // 其他寶可夢
-        { word: "妙蛙種子", zhuyin: ["ㄇㄧㄠˋ","ㄨㄚ","ㄓㄨㄥˇ","ㄗˇ"], color: "#78C850", imageId: "1", id: 1 },
-        { word: "小火龍", zhuyin: ["ㄒㄧㄠˇ","ㄏㄨㄛˇ","ㄌㄨㄥˊ"], color: "#F08030", imageId: "4", id: 4 },
-        { word: "傑尼龜", zhuyin: ["ㄐㄧㄝˊ","ㄋㄧˊ","ㄍㄨㄟ"], color: "#6890F0", imageId: "7", id: 7 },
-        { word: "綠毛蟲", zhuyin: ["ㄌㄩˋ","ㄇㄠˊ","ㄔㄨㄥˊ"], color: "#78C850", imageId: "10", id: 10 },
-        { word: "巴大蝶", zhuyin: ["ㄅㄚ","ㄉㄚˋ","ㄉㄧㄝˊ"], color: "#A8B820", imageId: "12", id: 12 },
-        { word: "獨角蟲", zhuyin: ["ㄉㄨˊ","ㄐㄧㄠˇ","ㄔㄨㄥˊ"], color: "#A040A0", imageId: "13", id: 13 },
-        { word: "波波", zhuyin: ["ㄅㄛ","ㄅㄛ"], color: "#A890F0", imageId: "16", id: 16 },
-        { word: "阿柏蛇", zhuyin: ["ㄚ","ㄅㄛˊ","ㄕㄜˊ"], color: "#A040A0", imageId: "23", id: 23 },
-        { word: "穿山鼠", zhuyin: ["ㄔㄨㄢ","ㄕㄢ","ㄕㄨˇ"], color: "#E0C068", imageId: "27", id: 27 },
-        { word: "尼多蘭", zhuyin: ["ㄋㄧˊ","ㄉㄨㄛ","ㄌㄢˊ"], color: "#A040A0", imageId: "29", id: 29 },
-        { word: "皮皮", zhuyin: ["ㄆㄧˊ","ㄆㄧˊ"], color: "#F85888", imageId: "35", id: 35 },
-        { word: "六尾", zhuyin: ["ㄌㄧㄡˋ","ㄨㄟˇ"], color: "#F08030", imageId: "37", id: 37 },
-        { word: "胖丁", zhuyin: ["ㄆㄤˋ","ㄉㄧㄥ"], color: "#F85888", imageId: "39", id: 39 },
-        { word: "走路草", zhuyin: ["ㄗㄡˇ","ㄌㄨˋ","ㄘㄠˇ"], color: "#78C850", imageId: "43", id: 43 },
-        { word: "喵喵", zhuyin: ["ㄇㄧㄠ","ㄇㄧㄠ"], color: "#A8A878", imageId: "52", id: 52 },
-        { word: "可達鴨", zhuyin: ["ㄎㄜˇ","ㄉㄚˊ","ㄧㄚ"], color: "#F8D030", imageId: "54", id: 54 },
-        { word: "猴怪", zhuyin: ["ㄏㄡˊ","ㄍㄨㄞˋ"], color: "#C03028", imageId: "56", id: 56 },
-        { word: "卡蒂狗", zhuyin: ["ㄎㄚˇ","ㄉㄧˋ","ㄍㄡ"], color: "#F08030", imageId: "58", id: 58 },
-        { word: "蚊香蝌蚪", zhuyin: ["ㄨㄣˊ","ㄒㄧㄤ","ㄎㄜ","ㄉㄡˇ"], color: "#6890F0", imageId: "60", id: 60 },
-        { word: "凱西", zhuyin: ["ㄎㄞˇ","ㄒㄧ"], color: "#F85888", imageId: "63", id: 63 },
-        { word: "腕力", zhuyin: ["ㄨㄢˋ","ㄌㄧˋ"], color: "#C03028", imageId: "66", id: 66 },
-        { word: "小拳石", zhuyin: ["ㄒㄧㄠˇ","ㄑㄩㄢˊ","ㄕˊ"], color: "#E0C068", imageId: "74", id: 74 },
-        { word: "小磁怪", zhuyin: ["ㄒㄧㄠˇ","ㄘˊ","ㄍㄨㄞˋ"], color: "#B8B8D0", imageId: "81", id: 81 },
-        { word: "大蔥鴨", zhuyin: ["ㄉㄚˋ","ㄘㄨㄥ","ㄧㄚ"], color: "#A8A878", imageId: "83", id: 83 },
-        { word: "嘟嘟", zhuyin: ["ㄉㄨ","ㄉㄨ"], color: "#A890F0", imageId: "84", id: 84 },
-        { word: "小海獅", zhuyin: ["ㄒㄧㄠˇ","ㄏㄞˇ","ㄕ"], color: "#6890F0", imageId: "86", id: 86 },
-        { word: "大岩蛇", zhuyin: ["ㄉㄚˋ","ㄧㄢˊ","ㄕㄜˊ"], color: "#A8A878", imageId: "95", id: 95 },
-        { word: "大鉗蟹", zhuyin: ["ㄉㄚˋ","ㄑㄧㄢˊ","ㄒㄧㄝˋ"], color: "#6890F0", imageId: "98", id: 98 },
-        { word: "雷球", zhuyin: ["ㄌㄟˊ","ㄑㄧㄡˊ"], color: "#F8D030", imageId: "100", id: 100 },
-        { word: "可拉可拉", zhuyin: ["ㄎㄜˇ","ㄌㄚ","ㄎㄜˇ","ㄌㄚ"], color: "#E0C068", imageId: "104", id: 104 },
-        { word: "墨海馬", zhuyin: ["ㄇㄛˋ","ㄏㄞˇ","ㄇㄚˇ"], color: "#6890F0", imageId: "116", id: 116 },
-        { word: "海星星", zhuyin: ["ㄏㄞˇ","ㄒㄧㄥ","ㄒㄧㄥ"], color: "#6890F0", imageId: "120", id: 120 },
-        { word: "鯉魚王", zhuyin: ["ㄌㄧˇ","ㄩˊ","ㄨㄤˊ"], color: "#F05030", imageId: "129", id: 129 },
-        { word: "百變怪", zhuyin: ["ㄅㄞˇ","ㄅㄧㄢˋ","ㄍㄨㄞˋ"], color: "#A8A878", imageId: "132", id: 132 },
-        { word: "卡比獸", zhuyin: ["ㄎㄚˇ","ㄅㄧˇ","ㄕㄡˋ"], color: "#303842", imageId: "143", id: 143 },
-        { word: "快龍", zhuyin: ["ㄎㄨㄞˋ","ㄌㄨㄥˊ"], color: "#F0B666", imageId: "149", id: 149 },
-        { word: "超夢", zhuyin: ["ㄔㄠ","ㄇㄥˋ"], color: "#9668C9", imageId: "150", id: 150 },
-        { word: "夢幻", zhuyin: ["ㄇㄥˋ","ㄏㄨㄢˋ"], color: "#F85888", imageId: "151", id: 151 },
-        { word: "菊草葉", zhuyin: ["ㄐㄩˊ","ㄘㄠˇ","ㄧㄝˋ"], color: "#78C850", imageId: "152", id: 152 },
-        { word: "火球鼠", zhuyin: ["ㄏㄨㄛˇ","ㄑㄧㄡˊ","ㄕㄨˇ"], color: "#F08030", imageId: "155", id: 155 },
-        { word: "波克比", zhuyin: ["ㄅㄛ","ㄎㄜˋ","ㄅㄧˇ"], color: "#F85888", imageId: "175", id: 175 }
-    ];
-
-    // 為所有項目加上解鎖狀態
-    vocabulary.forEach(v => v.isUnlocked = false);
-
-    let currentIndex = 0; // 目前選擇的寶可夢 index
-    let charIndex = 0;    // 目前寫到第幾個字
-    
-    // P5.js 變數
-    let pgTarget, pgDraw;
-    let particles = [];
-    let canvasSize;
-    let isWin = false;
-    let STROKE_SIZE = 32; // 筆畫較細
-    let TARGET_FONT_SIZE, ZHUYIN_FONT_SIZE;
-    let p5Canvas;
-
-    // --- 程式入口 ---
-    function setup() {
-        // 初始化畫布，但先不顯示 (因為在 Menu 層)
-        let w = window.innerWidth;
-        let h = window.innerHeight;
-        // 留空間給 UI
-        canvasSize = Math.min(w, h * 0.75) - 30; 
-        
-        let cnv = createCanvas(canvasSize, canvasSize);
-        cnv.parent('canvas-container');
-        p5Canvas = cnv;
-
-        // 計算字體大小
-        TARGET_FONT_SIZE = canvasSize * 0.55;
-        ZHUYIN_FONT_SIZE = TARGET_FONT_SIZE * 0.22;
-
-        pgTarget = createGraphics(canvasSize, canvasSize);
-        pgDraw = createGraphics(canvasSize, canvasSize);
-
-        // 字型設定
-        let fontName = "-apple-system, 'Microsoft JhengHei', sans-serif";
-        textFont(fontName);
-        pgTarget.textFont(fontName);
-
-        // 渲染選單
-        renderMenu();
-    }
-
-    function draw() {
-        // 只有在遊戲層顯示時才繪製，節省效能
-        if (document.getElementById('game-layer').style.display === 'none') return;
-
-        background(255);
-        drawGrid();
-        drawGuideCharacter(); // 包含直式注音
-        image(pgDraw, 0, 0);
-        handleParticles();
-
-        if (mouseIsPressed && !isWin) {
-            handleDrawing();
-        }
-
-        if (frameCount % 10 === 0 && !isWin) {
-            checkWinCondition();
-        }
-
-        if (isWin) {
-            winEffect();
-        }
-    }
-
-    // --- 1. 選單邏輯 ---
-    function renderMenu() {
-        const grid = document.getElementById('pokemon-grid');
-        grid.innerHTML = ''; // 清空
-
-        vocabulary.forEach((poke, index) => {
-            const card = document.createElement('div');
-            // 根據是否解鎖加入樣式 class
-            card.className = `poke-card ${poke.isUnlocked ? 'unlocked' : 'locked'}`;
-            card.onclick = () => selectPokemon(index);
-
-            // 加入 ID 顯示
-            const idTag = document.createElement('div');
-            idTag.className = 'poke-id';
-            idTag.innerText = 'No.' + String(poke.id).padStart(3, '0');
-
-            const img = document.createElement('img');
-            img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${poke.imageId}.png`;
-            img.className = 'poke-img';
-            img.loading = "lazy"; // 圖片懶加載
-
-            const name = document.createElement('div');
-            name.className = 'poke-name';
-            // 未解鎖顯示 ？？？
-            name.innerText = poke.isUnlocked ? poke.word : "???";
-
-            card.appendChild(idTag); // 加入 ID
-            card.appendChild(img);
-            card.appendChild(name);
-            grid.appendChild(card);
-        });
-    }
-
-    function selectPokemon(index) {
-        currentIndex = index;
-        charIndex = 0;
-        
-        // 切換介面
-        document.getElementById('menu-layer').style.display = 'none';
-        document.getElementById('game-layer').style.display = 'flex';
-        
-        // 初始化遊戲
-        resetCanvas();
-        prepareLevel();
-        updateGameUI();
-    }
-
-    function returnToMenu() {
-        document.getElementById('game-layer').style.display = 'none';
-        document.getElementById('menu-layer').style.display = 'flex';
-        renderMenu(); // 重新渲染以更新狀態
-    }
-
-    // --- 2. 遊戲核心邏輯 ---
-    function prepareLevel() {
-        pgDraw.clear();
-        isWin = false;
-        
-        pgTarget.clear();
-        pgTarget.fill(0);
-        pgTarget.noStroke();
-        pgTarget.textAlign(CENTER, CENTER);
-        
-        // 畫出目標字 (黑色，用於判定)
-        let data = vocabulary[currentIndex];
-        let char = data.word[charIndex];
-        
-        pgTarget.textSize(TARGET_FONT_SIZE);
-        // 字稍微偏左，留空間給右邊的直式注音
-        pgTarget.text(char, width/2 - TARGET_FONT_SIZE*0.15, height/2 - TARGET_FONT_SIZE*0.05);
-
-        document.getElementById("progress-fill").style.width = "0%";
-        document.getElementById("progress-fill").style.background = "#4caf50";
-        document.getElementById("next-btn").innerText = "下一字";
-        document.getElementById("next-btn").style.display = "block";
-    }
-
-    // 重點：直式注音繪製
-    function drawGuideCharacter() {
-        let data = vocabulary[currentIndex];
-        let char = data.word[charIndex];
-        let zhuyinStr = data.zhuyin[charIndex]; // 例如 "ㄆㄧˊ"
-
-        let charX = width/2 - TARGET_FONT_SIZE*0.15;
-        let charY = height/2 - TARGET_FONT_SIZE*0.05;
-
-        // 1. 畫國字底
-        push();
-        textAlign(CENTER, CENTER);
-        fill(240); noStroke();
-        textSize(TARGET_FONT_SIZE);
-        text(char, charX, charY);
-        
-        noFill(); stroke(220); strokeWeight(3);
-        text(char, charX, charY);
-
-        // 2. 畫直式注音
-        // 注音起始 X 位置 (在國字右邊)
-        let zhuyinX = charX + TARGET_FONT_SIZE * 0.65;
-        // 起始 Y 位置 (稍微往上提一點，讓整體置中)
-        let totalHeight = zhuyinStr.length * ZHUYIN_FONT_SIZE * 1.1; 
-        let startY = charY - (totalHeight / 2) + (ZHUYIN_FONT_SIZE/2);
-
-        fill(100); noStroke();
-        textSize(ZHUYIN_FONT_SIZE);
-        
-        // 迴圈拆解字串，一個字一個字垂直往下畫
-        for (let i = 0; i < zhuyinStr.length; i++) {
-            let zChar = zhuyinStr[i];
-            text(zChar, zhuyinX, startY + (i * ZHUYIN_FONT_SIZE * 1.1));
-        }
-        pop();
-    }
-
-    function handleDrawing() {
-        pgDraw.stroke(vocabulary[currentIndex].color);
-        pgDraw.strokeWeight(STROKE_SIZE);
-        pgDraw.strokeCap(ROUND); pgDraw.strokeJoin(ROUND);
-
-        if (pmouseX > 0 || pmouseY > 0) {
-            let d = dist(pmouseX, pmouseY, mouseX, mouseY);
-            // 補間插點讓線條更滑順
-            if (d > 0) {
-                 let steps = Math.ceil(d / 5);
-                 for (let i = 0; i <= steps; i++) {
-                     let x = lerp(pmouseX, mouseX, i/steps);
-                     let y = lerp(pmouseY, mouseY, i/steps);
-                     pgDraw.line(x, y, x, y); // 用 line(x,y,x,y) 比 point 效能好且配合 strokeCap
-                 }
-            }
-        }
-        
-        // 粒子
-        if (dist(mouseX, mouseY, pmouseX, pmouseY) > 2) {
-             particles.push(new Particle(mouseX, mouseY, vocabulary[currentIndex].color));
-        }
-    }
-
-    function checkWinCondition() {
-        pgTarget.loadPixels();
-        pgDraw.loadPixels();
-        let targetCount = 0, coveredCount = 0;
-        const step = 40; 
-        
-        for (let i = 0; i < pgTarget.pixels.length; i += step) {
-            if (pgTarget.pixels[i+3] > 100) {
-                targetCount++;
-                if (pgDraw.pixels[i+3] > 100) coveredCount++;
-            }
-        }
-
-        let ratio = targetCount > 0 ? coveredCount / targetCount : 0;
-        let percent = Math.min(Math.floor(ratio * 100), 100);
-        document.getElementById("progress-fill").style.width = percent + "%";
-
-        if (ratio > 0.85) {
-            gameWin();
-        }
-    }
-
-    function gameWin() {
-        isWin = true;
-        document.getElementById("progress-fill").style.background = "linear-gradient(90deg, #FFD700, #FFA500)";
-        
-        // 特效
-        for(let i=0; i<30; i++) particles.push(new Particle(width/2, height/2, vocabulary[currentIndex].color));
-        
-        // 判斷是否為最後一個字
-        if (charIndex >= vocabulary[currentIndex].word.length - 1) {
-            document.getElementById("next-btn").innerText = "🎉 捕獲!";
-            // 延遲跳出獎勵
-            setTimeout(showReward, 800);
-        }
-    }
-
-    function nextStep() {
-        if (!isWin) return; // 未完成不能跳
-
-        if (charIndex < vocabulary[currentIndex].word.length - 1) {
-            // 還有字
-            charIndex++;
-            resetCanvas();
-            prepareLevel();
-            updateGameUI();
-        } else {
-            // 已經是最後一個字，觸發獎勵 (按鈕文字已經變了)
-            showReward();
-        }
-    }
-
-    // --- 3. 獎勵與 UI ---
-    function showReward() {
-        let data = vocabulary[currentIndex];
-        
-        // 設定彈窗內容
-        document.getElementById("reward-img").src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${data.imageId}.png`;
-        document.getElementById("reward-msg").innerText = `捕獲 ${data.word} !`;
-        document.getElementById("reward-popup").style.display = "flex";
-
-        // 更新資料狀態
-        vocabulary[currentIndex].isUnlocked = true;
-
-        // 背景煙火
-        for(let i=0; i<50; i++) particles.push(new Particle(random(width), random(height), data.color));
-    }
-
-    function closeRewardAndReturn() {
-        document.getElementById("reward-popup").style.display = "none";
-        returnToMenu();
-    }
-
-    function updateGameUI() {
-        let data = vocabulary[currentIndex];
-        document.getElementById('question-text').innerHTML = `
-            <span style="color:#555">題目：</span>
-            <span style="color:${data.color}; font-size:1.2em;">${data.word}</span>
-        `;
-    }
-
-    window.resetCanvas = function() {
-        pgDraw.clear();
-        isWin = false;
-        document.getElementById("progress-fill").style.width = "0%";
-        document.getElementById("progress-fill").style.background = "#4caf50";
-    }
-
-    function drawGrid() {
-        push();
-        stroke(255, 220, 220); strokeWeight(2);
-        rect(1, 1, width-2, height-2);
-        drawingContext.setLineDash([8, 8]);
-        line(width/2, 0, width/2, height);
-        line(0, height/2, width, height/2);
-        pop();
-    }
-
-    class Particle {
-        constructor(x, y, hex) {
-            this.x = x + random(-10,10); this.y = y + random(-10,10);
-            this.vx = random(-3,3); this.vy = random(-3,3);
-            this.life = 255; this.color = color(hex);
-            this.size = random(8, 15);
-        }
-        update() {
-            this.x += this.vx; this.y += this.vy;
-            this.life -= 15; this.size *= 0.9;
-        }
-        show() {
-            noStroke(); this.color.setAlpha(this.life);
-            fill(this.color); ellipse(this.x, this.y, this.size);
-        }
-    }
-
-    function handleParticles() {
-        for (let i = particles.length-1; i >= 0; i--) {
-            particles[i].update(); particles[i].show();
-            if (particles[i].life <= 0) particles.splice(i,1);
-        }
-    }
-
-    function winEffect() {
-        if(frameCount % 10 === 0) particles.push(new Particle(random(width), random(height), vocabulary[currentIndex].color));
-    }
-
-    // 手機防滑動
-    document.addEventListener('touchmove', function(e) {
-        // 允許選單區 (menu-layer) 內的滑動，禁止其他地方
-        if (document.getElementById('menu-layer').contains(e.target) && document.getElementById('menu-layer').style.display !== 'none') {
-            return; 
-        }
-        if (e.target.tagName !== 'BUTTON') e.preventDefault();
-    }, { passive: false });
-    
-    function touchMoved() { return false; }
-</script>
-</body>
-</html>
+            text-align: center; background: rgba(255
