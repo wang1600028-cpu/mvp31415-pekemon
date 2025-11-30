@@ -19,7 +19,8 @@
             width: 100vw;
             height: 100dvh; /* Safari 全螢幕適配 */
             user-select: none; -webkit-user-select: none;
-            touch-action: pan-y; /* 允許垂直捲動 (給選單用) */
+            /* 允許垂直捲動 (給選單用) */
+            touch-action: pan-y; 
         }
 
         /* --- 選單層 --- */
@@ -36,7 +37,7 @@
         .menu-header {
             text-align: center; 
             padding: 20px 10px;
-            padding-top: max(20px, env(safe-area-inset-top)); /* 避開瀏海 */
+            padding-top: max(20px, env(safe-area-inset-top));
             background: white;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             position: sticky; top: 0; z-index: 30;
@@ -103,7 +104,8 @@
             overflow: hidden; background: white;
             position: relative;
             margin: 10px;
-            touch-action: none; /* 關鍵：畫布區禁止滑動，專注繪圖 */
+            /* 雙重保險：CSS 禁止觸控行為 */
+            touch-action: none; 
         }
 
         .ui-overlay {
@@ -211,7 +213,7 @@
         { word: "葉伊布", zhuyin: ["ㄧㄝˋ","ㄧ","ㄅㄨˋ"], color: "#78C850", imageId: "470", id: 470 },
         { word: "冰伊布", zhuyin: ["ㄅㄧㄥ","ㄧ","ㄅㄨˋ"], color: "#98D8D8", imageId: "471", id: 471 },
         { word: "仙子伊布", zhuyin: ["ㄒㄧㄢ","ㄗˇ","ㄧ","ㄅㄨˋ"], color: "#F85888", imageId: "700", id: 700 },
-        // 3. 熱門精選 (補滿至20)
+        // 3. 熱門精選
         { word: "妙蛙種子", zhuyin: ["ㄇㄧㄠˋ","ㄨㄚ","ㄓㄨㄥˇ","ㄗˇ"], color: "#78C850", imageId: "1", id: 1 },
         { word: "小火龍", zhuyin: ["ㄒㄧㄠˇ","ㄏㄨㄛˇ","ㄌㄨㄥˊ"], color: "#F08030", imageId: "4", id: 4 },
         { word: "傑尼龜", zhuyin: ["ㄐㄧㄝˊ","ㄋㄧˊ","ㄍㄨㄟ"], color: "#6890F0", imageId: "7", id: 7 },
@@ -225,10 +227,10 @@
 
     vocabulary.forEach(v => v.isUnlocked = false);
 
-    // --- 2. 獨立的選單渲染函式 (不依賴 p5.js) ---
+    // --- 2. 選單渲染 (網頁載入即執行) ---
     function renderMenu() {
         const grid = document.getElementById('pokemon-grid');
-        if (!grid) return; // 保護機制
+        if (!grid) return; 
 
         grid.innerHTML = ''; 
         vocabulary.forEach((poke, index) => {
@@ -244,7 +246,7 @@
             img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${poke.imageId}.png`;
             img.className = 'poke-img';
             img.loading = "lazy";
-            img.alt = poke.word; // 增加 alt 屬性
+            img.alt = poke.word; 
 
             const name = document.createElement('div');
             name.className = 'poke-name';
@@ -257,8 +259,6 @@
         });
     }
 
-    // ★★★ 關鍵修正：在網頁載入時直接呼叫，不等待 p5.js ★★★
-    // 這樣就算 p5.js 載入失敗，選單至少會出現
     document.addEventListener("DOMContentLoaded", function() {
         renderMenu();
     });
@@ -272,16 +272,28 @@
     let isWin = false;
     let STROKE_SIZE = 30;
     let TARGET_FONT_SIZE, ZHUYIN_FONT_SIZE;
+    let p5Canvas; 
 
     function setup() {
-        // 設定畫布
         let w = window.innerWidth;
         let h = window.innerHeight;
         canvasSize = Math.min(w, h * 0.70) - 20; 
         
         let cnv = createCanvas(canvasSize, canvasSize);
         cnv.parent('canvas-container');
+        p5Canvas = cnv;
 
+        // ★★★ 終極修正：直接對原生 Canvas 綁定事件，防止 iOS 捲動干擾 ★★★
+        // 這是解決「變成虛線/點點」的關鍵
+        let canvasElement = cnv.elt;
+        const preventDefault = (e) => e.preventDefault();
+        
+        // 加上 { passive: false } 才能成功執行 preventDefault()
+        canvasElement.addEventListener('touchstart', preventDefault, { passive: false });
+        canvasElement.addEventListener('touchmove', preventDefault, { passive: false });
+        canvasElement.addEventListener('touchend', preventDefault, { passive: false });
+
+        // 其他初始化
         TARGET_FONT_SIZE = canvasSize * 0.55;
         ZHUYIN_FONT_SIZE = TARGET_FONT_SIZE * 0.22;
 
@@ -293,12 +305,13 @@
         pgTarget.textFont(fontName);
     }
 
-    // ★★★ iPhone 觸控修正：區分選單與遊戲 ★★★
+    // 保險起見：P5 內部的處理
     function touchMoved() {
+        // 如果在遊戲層，強制回傳 false (禁止捲動)
         if (document.getElementById('game-layer').style.display === 'flex') {
-            return false; // 遊戲中：鎖住滑動，讓你可以寫字
+            return false; 
         }
-        return true; // 選單中：允許滑動
+        return true; 
     }
 
     function draw() {
@@ -324,14 +337,13 @@
         }
     }
 
-    // --- 遊戲邏輯與 UI 互動 ---
+    // --- 遊戲邏輯 ---
     function selectPokemon(index) {
         currentIndex = index;
         charIndex = 0;
         document.getElementById('menu-layer').style.display = 'none';
         document.getElementById('game-layer').style.display = 'flex';
         
-        // 確保畫布重置
         if (pgDraw) resetCanvas(); 
         if (pgTarget) prepareLevel();
         updateGameUI();
@@ -391,6 +403,7 @@
         pgDraw.strokeCap(ROUND); pgDraw.strokeJoin(ROUND);
 
         let d = dist(pmouseX, pmouseY, mouseX, mouseY);
+        // 使用插值補間，即使瀏覽器慢了一幀，線條也會連起來
         if (d > 0) {
              let steps = Math.ceil(d / 5);
              for (let i = 0; i <= steps; i++) {
