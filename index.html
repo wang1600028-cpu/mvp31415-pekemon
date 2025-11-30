@@ -17,29 +17,26 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
             overflow: hidden;
             width: 100vw;
-            /* 使用 dvh 確保在 Safari 上滿版 */
-            height: 100vh; 
-            height: 100dvh; 
+            height: 100dvh; /* Safari 全螢幕適配 */
             user-select: none; -webkit-user-select: none;
-            /* 【修正1】這裡改為 pan-y，允許全域垂直滑動 (為了選單) */
-            touch-action: pan-y; 
+            touch-action: pan-y; /* 允許垂直捲動 (給選單用) */
         }
 
-        /* --- 第 1 層：圖鑑選單介面 --- */
+        /* --- 選單層 --- */
         #menu-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #eef2f5;
             display: flex; flex-direction: column;
             z-index: 20;
-            overflow-y: auto; /* 允許捲動 */
-            -webkit-overflow-scrolling: touch; /* iOS 滑動慣性 */
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
             padding-bottom: 40px;
         }
 
         .menu-header {
-            text-align: center; padding: 20px 10px;
-            /* 增加頂部安全距離，避開 iPhone 瀏海 */
-            padding-top: max(20px, env(safe-area-inset-top));
+            text-align: center; 
+            padding: 20px 10px;
+            padding-top: max(20px, env(safe-area-inset-top)); /* 避開瀏海 */
             background: white;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             position: sticky; top: 0; z-index: 30;
@@ -57,8 +54,7 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 15px;
             padding: 20px;
-            /* 底部留白給 Home Bar */
-            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            padding-bottom: max(40px, env(safe-area-inset-bottom));
         }
 
         .poke-card {
@@ -69,6 +65,7 @@
             transition: transform 0.1s;
             cursor: pointer;
             position: relative;
+            min-height: 120px;
         }
         .poke-card:active { transform: scale(0.95); }
         
@@ -79,8 +76,8 @@
 
         .poke-img {
             width: 80px; height: 80px; object-fit: contain;
-            transition: filter 0.3s;
             margin-top: 10px;
+            transition: filter 0.3s;
         }
 
         .locked .poke-img { filter: brightness(0) opacity(0.8); }
@@ -88,10 +85,9 @@
         .unlocked .poke-img { filter: none; filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6)); }
         .unlocked .poke-name { color: #333; font-weight: bold; }
         .unlocked::after { content: "👑"; position: absolute; top: -5px; right: -5px; font-size: 20px; }
-
         .poke-name { margin-top: 5px; font-size: 14px; text-align: center; }
 
-        /* --- 第 2 層：遊戲練習介面 --- */
+        /* --- 遊戲層 --- */
         #game-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: none;
@@ -107,8 +103,7 @@
             overflow: hidden; background: white;
             position: relative;
             margin: 10px;
-            /* 【修正2】關鍵！在畫布區域禁止瀏覽器處理觸控，強制交給 JS */
-            touch-action: none; 
+            touch-action: none; /* 關鍵：畫布區禁止滑動，專注繪圖 */
         }
 
         .ui-overlay {
@@ -195,16 +190,18 @@
         <div class="reward-card">
             <h2 style="color:#ffcb05; -webkit-text-stroke:1px #2a3693; margin:0;">CONGRATS!</h2>
             <img id="reward-img" src="" alt="">
-            <div class="reward-text" id="reward-msg">捕獲 皮卡丘 !</div>
+            <div class="reward-text" id="reward-msg">捕獲成功!</div>
             <button class="btn" onclick="closeRewardAndReturn()">太棒了!</button>
         </div>
     </div>
 
 <script>
-    // --- 遊戲資料 (保持原樣) ---
+    // --- 1. 精簡至 20 隻寶可夢 ---
     const vocabulary = [
+        // 1. 皮卡丘 & 路卡利歐 (必備)
         { word: "皮卡丘", zhuyin: ["ㄆㄧˊ","ㄎㄚˇ","ㄑㄧㄡ"], color: "#F7D02C", imageId: "25", id: 25 },
         { word: "路卡利歐", zhuyin: ["ㄌㄨˋ","ㄎㄚˇ","ㄌㄧˋ","ㄡ"], color: "#448CCB", imageId: "448", id: 448 },
+        // 2. 伊布家族 (9隻) - 必備
         { word: "伊布", zhuyin: ["ㄧ","ㄅㄨˋ"], color: "#A8A77A", imageId: "133", id: 133 },
         { word: "水伊布", zhuyin: ["ㄕㄨㄟˇ","ㄧ","ㄅㄨˋ"], color: "#6890F0", imageId: "134", id: 134 },
         { word: "雷伊布", zhuyin: ["ㄌㄟˊ","ㄧ","ㄅㄨˋ"], color: "#F8D030", imageId: "135", id: 135 },
@@ -214,124 +211,26 @@
         { word: "葉伊布", zhuyin: ["ㄧㄝˋ","ㄧ","ㄅㄨˋ"], color: "#78C850", imageId: "470", id: 470 },
         { word: "冰伊布", zhuyin: ["ㄅㄧㄥ","ㄧ","ㄅㄨˋ"], color: "#98D8D8", imageId: "471", id: 471 },
         { word: "仙子伊布", zhuyin: ["ㄒㄧㄢ","ㄗˇ","ㄧ","ㄅㄨˋ"], color: "#F85888", imageId: "700", id: 700 },
+        // 3. 熱門精選 (補滿至20)
         { word: "妙蛙種子", zhuyin: ["ㄇㄧㄠˋ","ㄨㄚ","ㄓㄨㄥˇ","ㄗˇ"], color: "#78C850", imageId: "1", id: 1 },
         { word: "小火龍", zhuyin: ["ㄒㄧㄠˇ","ㄏㄨㄛˇ","ㄌㄨㄥˊ"], color: "#F08030", imageId: "4", id: 4 },
         { word: "傑尼龜", zhuyin: ["ㄐㄧㄝˊ","ㄋㄧˊ","ㄍㄨㄟ"], color: "#6890F0", imageId: "7", id: 7 },
-        { word: "綠毛蟲", zhuyin: ["ㄌㄩˋ","ㄇㄠˊ","ㄔㄨㄥˊ"], color: "#78C850", imageId: "10", id: 10 },
-        { word: "巴大蝶", zhuyin: ["ㄅㄚ","ㄉㄚˋ","ㄉㄧㄝˊ"], color: "#A8B820", imageId: "12", id: 12 },
-        { word: "獨角蟲", zhuyin: ["ㄉㄨˊ","ㄐㄧㄠˇ","ㄔㄨㄥˊ"], color: "#A040A0", imageId: "13", id: 13 },
-        { word: "波波", zhuyin: ["ㄅㄛ","ㄅㄛ"], color: "#A890F0", imageId: "16", id: 16 },
-        { word: "阿柏蛇", zhuyin: ["ㄚ","ㄅㄛˊ","ㄕㄜˊ"], color: "#A040A0", imageId: "23", id: 23 },
-        { word: "穿山鼠", zhuyin: ["ㄔㄨㄢ","ㄕㄢ","ㄕㄨˇ"], color: "#E0C068", imageId: "27", id: 27 },
-        { word: "尼多蘭", zhuyin: ["ㄋㄧˊ","ㄉㄨㄛ","ㄌㄢˊ"], color: "#A040A0", imageId: "29", id: 29 },
-        { word: "皮皮", zhuyin: ["ㄆㄧˊ","ㄆㄧˊ"], color: "#F85888", imageId: "35", id: 35 },
-        { word: "六尾", zhuyin: ["ㄌㄧㄡˋ","ㄨㄟˇ"], color: "#F08030", imageId: "37", id: 37 },
-        { word: "胖丁", zhuyin: ["ㄆㄤˋ","ㄉㄧㄥ"], color: "#F85888", imageId: "39", id: 39 },
-        { word: "走路草", zhuyin: ["ㄗㄡˇ","ㄌㄨˋ","ㄘㄠˇ"], color: "#78C850", imageId: "43", id: 43 },
-        { word: "喵喵", zhuyin: ["ㄇㄧㄠ","ㄇㄧㄠ"], color: "#A8A878", imageId: "52", id: 52 },
-        { word: "可達鴨", zhuyin: ["ㄎㄜˇ","ㄉㄚˊ","ㄧㄚ"], color: "#F8D030", imageId: "54", id: 54 },
-        { word: "猴怪", zhuyin: ["ㄏㄡˊ","ㄍㄨㄞˋ"], color: "#C03028", imageId: "56", id: 56 },
-        { word: "卡蒂狗", zhuyin: ["ㄎㄚˇ","ㄉㄧˋ","ㄍㄡ"], color: "#F08030", imageId: "58", id: 58 },
-        { word: "蚊香蝌蚪", zhuyin: ["ㄨㄣˊ","ㄒㄧㄤ","ㄎㄜ","ㄉㄡˇ"], color: "#6890F0", imageId: "60", id: 60 },
-        { word: "凱西", zhuyin: ["ㄎㄞˇ","ㄒㄧ"], color: "#F85888", imageId: "63", id: 63 },
-        { word: "腕力", zhuyin: ["ㄨㄢˋ","ㄌㄧˋ"], color: "#C03028", imageId: "66", id: 66 },
-        { word: "小拳石", zhuyin: ["ㄒㄧㄠˇ","ㄑㄩㄢˊ","ㄕˊ"], color: "#E0C068", imageId: "74", id: 74 },
-        { word: "小磁怪", zhuyin: ["ㄒㄧㄠˇ","ㄘˊ","ㄍㄨㄞˋ"], color: "#B8B8D0", imageId: "81", id: 81 },
-        { word: "大蔥鴨", zhuyin: ["ㄉㄚˋ","ㄘㄨㄥ","ㄧㄚ"], color: "#A8A878", imageId: "83", id: 83 },
-        { word: "嘟嘟", zhuyin: ["ㄉㄨ","ㄉㄨ"], color: "#A890F0", imageId: "84", id: 84 },
-        { word: "小海獅", zhuyin: ["ㄒㄧㄠˇ","ㄏㄞˇ","ㄕ"], color: "#6890F0", imageId: "86", id: 86 },
-        { word: "大岩蛇", zhuyin: ["ㄉㄚˋ","ㄧㄢˊ","ㄕㄜˊ"], color: "#A8A878", imageId: "95", id: 95 },
-        { word: "大鉗蟹", zhuyin: ["ㄉㄚˋ","ㄑㄧㄢˊ","ㄒㄧㄝˋ"], color: "#6890F0", imageId: "98", id: 98 },
-        { word: "雷球", zhuyin: ["ㄌㄟˊ","ㄑㄧㄡˊ"], color: "#F8D030", imageId: "100", id: 100 },
-        { word: "可拉可拉", zhuyin: ["ㄎㄜˇ","ㄌㄚ","ㄎㄜˇ","ㄌㄚ"], color: "#E0C068", imageId: "104", id: 104 },
-        { word: "墨海馬", zhuyin: ["ㄇㄛˋ","ㄏㄞˇ","ㄇㄚˇ"], color: "#6890F0", imageId: "116", id: 116 },
-        { word: "海星星", zhuyin: ["ㄏㄞˇ","ㄒㄧㄥ","ㄒㄧㄥ"], color: "#6890F0", imageId: "120", id: 120 },
-        { word: "鯉魚王", zhuyin: ["ㄌㄧˇ","ㄩˊ","ㄨㄤˊ"], color: "#F05030", imageId: "129", id: 129 },
-        { word: "百變怪", zhuyin: ["ㄅㄞˇ","ㄅㄧㄢˋ","ㄍㄨㄞˋ"], color: "#A8A878", imageId: "132", id: 132 },
         { word: "卡比獸", zhuyin: ["ㄎㄚˇ","ㄅㄧˇ","ㄕㄡˋ"], color: "#303842", imageId: "143", id: 143 },
         { word: "快龍", zhuyin: ["ㄎㄨㄞˋ","ㄌㄨㄥˊ"], color: "#F0B666", imageId: "149", id: 149 },
         { word: "超夢", zhuyin: ["ㄔㄠ","ㄇㄥˋ"], color: "#9668C9", imageId: "150", id: 150 },
         { word: "夢幻", zhuyin: ["ㄇㄥˋ","ㄏㄨㄢˋ"], color: "#F85888", imageId: "151", id: 151 },
-        { word: "菊草葉", zhuyin: ["ㄐㄩˊ","ㄘㄠˇ","ㄧㄝˋ"], color: "#78C850", imageId: "152", id: 152 },
-        { word: "火球鼠", zhuyin: ["ㄏㄨㄛˇ","ㄑㄧㄡˊ","ㄕㄨˇ"], color: "#F08030", imageId: "155", id: 155 },
-        { word: "波克比", zhuyin: ["ㄅㄛ","ㄎㄜˋ","ㄅㄧˇ"], color: "#F85888", imageId: "175", id: 175 }
+        { word: "波克比", zhuyin: ["ㄅㄛ","ㄎㄜˋ","ㄅㄧˇ"], color: "#F85888", imageId: "175", id: 175 },
+        { word: "可達鴨", zhuyin: ["ㄎㄜˇ","ㄉㄚˊ","ㄧㄚ"], color: "#F8D030", imageId: "54", id: 54 }
     ];
 
     vocabulary.forEach(v => v.isUnlocked = false);
 
-    let currentIndex = 0;
-    let charIndex = 0;
-    
-    // P5.js 變數
-    let pgTarget, pgDraw;
-    let particles = [];
-    let canvasSize;
-    let isWin = false;
-    let STROKE_SIZE = 30; // 調整筆畫大小
-    let TARGET_FONT_SIZE, ZHUYIN_FONT_SIZE;
-    let p5Canvas;
-
-    function setup() {
-        let w = window.innerWidth;
-        let h = window.innerHeight;
-        canvasSize = Math.min(w, h * 0.70) - 20; 
-        
-        let cnv = createCanvas(canvasSize, canvasSize);
-        cnv.parent('canvas-container');
-        p5Canvas = cnv;
-
-        TARGET_FONT_SIZE = canvasSize * 0.55;
-        ZHUYIN_FONT_SIZE = TARGET_FONT_SIZE * 0.22;
-
-        pgTarget = createGraphics(canvasSize, canvasSize);
-        pgDraw = createGraphics(canvasSize, canvasSize);
-
-        let fontName = "-apple-system, 'Microsoft JhengHei', sans-serif";
-        textFont(fontName);
-        pgTarget.textFont(fontName);
-
-        // V7: 在這裡呼叫，確保選單出現
-        renderMenu();
-    }
-
-    // 【修正3】p5.js 觸控邏輯：
-    // 如果遊戲層打開了 (style.display == 'flex')，就回傳 false (禁止瀏覽器捲動，這樣才能畫畫)
-    // 否則回傳 true (允許瀏覽器捲動選單)
-    function touchMoved() {
-        if (document.getElementById('game-layer').style.display === 'flex') {
-            return false;
-        }
-        return true;
-    }
-
-    function draw() {
-        // 如果遊戲層沒顯示，就不畫，節省資源
-        if (document.getElementById('game-layer').style.display === 'none') return;
-
-        background(255);
-        drawGrid();
-        drawGuideCharacter();
-        image(pgDraw, 0, 0);
-        handleParticles();
-
-        // 【修正4】增加 touches 檢查，確保手機觸控能觸發
-        if ((mouseIsPressed || touches.length > 0) && !isWin) {
-            handleDrawing();
-        }
-
-        if (frameCount % 10 === 0 && !isWin) {
-            checkWinCondition();
-        }
-
-        if (isWin) {
-            winEffect();
-        }
-    }
-
+    // --- 2. 獨立的選單渲染函式 (不依賴 p5.js) ---
     function renderMenu() {
         const grid = document.getElementById('pokemon-grid');
-        grid.innerHTML = ''; 
+        if (!grid) return; // 保護機制
 
+        grid.innerHTML = ''; 
         vocabulary.forEach((poke, index) => {
             const card = document.createElement('div');
             card.className = `poke-card ${poke.isUnlocked ? 'unlocked' : 'locked'}`;
@@ -345,6 +244,7 @@
             img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${poke.imageId}.png`;
             img.className = 'poke-img';
             img.loading = "lazy";
+            img.alt = poke.word; // 增加 alt 屬性
 
             const name = document.createElement('div');
             name.className = 'poke-name';
@@ -357,13 +257,83 @@
         });
     }
 
+    // ★★★ 關鍵修正：在網頁載入時直接呼叫，不等待 p5.js ★★★
+    // 這樣就算 p5.js 載入失敗，選單至少會出現
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMenu();
+    });
+
+    // --- 3. p5.js 遊戲核心 ---
+    let currentIndex = 0;
+    let charIndex = 0;
+    let pgTarget, pgDraw;
+    let particles = [];
+    let canvasSize;
+    let isWin = false;
+    let STROKE_SIZE = 30;
+    let TARGET_FONT_SIZE, ZHUYIN_FONT_SIZE;
+
+    function setup() {
+        // 設定畫布
+        let w = window.innerWidth;
+        let h = window.innerHeight;
+        canvasSize = Math.min(w, h * 0.70) - 20; 
+        
+        let cnv = createCanvas(canvasSize, canvasSize);
+        cnv.parent('canvas-container');
+
+        TARGET_FONT_SIZE = canvasSize * 0.55;
+        ZHUYIN_FONT_SIZE = TARGET_FONT_SIZE * 0.22;
+
+        pgTarget = createGraphics(canvasSize, canvasSize);
+        pgDraw = createGraphics(canvasSize, canvasSize);
+
+        let fontName = "-apple-system, 'Microsoft JhengHei', sans-serif";
+        textFont(fontName);
+        pgTarget.textFont(fontName);
+    }
+
+    // ★★★ iPhone 觸控修正：區分選單與遊戲 ★★★
+    function touchMoved() {
+        if (document.getElementById('game-layer').style.display === 'flex') {
+            return false; // 遊戲中：鎖住滑動，讓你可以寫字
+        }
+        return true; // 選單中：允許滑動
+    }
+
+    function draw() {
+        if (document.getElementById('game-layer').style.display === 'none') return;
+
+        background(255);
+        drawGrid();
+        drawGuideCharacter();
+        image(pgDraw, 0, 0);
+        handleParticles();
+
+        // 支援滑鼠與觸控
+        if ((mouseIsPressed || touches.length > 0) && !isWin) {
+            handleDrawing();
+        }
+
+        if (frameCount % 10 === 0 && !isWin) {
+            checkWinCondition();
+        }
+
+        if (isWin) {
+            winEffect();
+        }
+    }
+
+    // --- 遊戲邏輯與 UI 互動 ---
     function selectPokemon(index) {
         currentIndex = index;
         charIndex = 0;
         document.getElementById('menu-layer').style.display = 'none';
         document.getElementById('game-layer').style.display = 'flex';
-        resetCanvas();
-        prepareLevel();
+        
+        // 確保畫布重置
+        if (pgDraw) resetCanvas(); 
+        if (pgTarget) prepareLevel();
         updateGameUI();
     }
 
@@ -376,15 +346,11 @@
     function prepareLevel() {
         pgDraw.clear();
         isWin = false;
-        
         pgTarget.clear();
-        pgTarget.fill(0);
-        pgTarget.noStroke();
-        pgTarget.textAlign(CENTER, CENTER);
+        pgTarget.fill(0); pgTarget.noStroke(); pgTarget.textAlign(CENTER, CENTER);
         
         let data = vocabulary[currentIndex];
         let char = data.word[charIndex];
-        
         pgTarget.textSize(TARGET_FONT_SIZE);
         pgTarget.text(char, width/2 - TARGET_FONT_SIZE*0.15, height/2 - TARGET_FONT_SIZE*0.05);
 
@@ -404,29 +370,22 @@
 
         push();
         textAlign(CENTER, CENTER);
-        fill(240); noStroke();
-        textSize(TARGET_FONT_SIZE);
-        text(char, charX, charY);
-        noFill(); stroke(220); strokeWeight(3);
-        text(char, charX, charY);
+        fill(240); noStroke(); textSize(TARGET_FONT_SIZE); text(char, charX, charY);
+        noFill(); stroke(220); strokeWeight(3); text(char, charX, charY);
 
         let zhuyinX = charX + TARGET_FONT_SIZE * 0.65;
         let totalHeight = zhuyinStr.length * ZHUYIN_FONT_SIZE * 1.1; 
         let startY = charY - (totalHeight / 2) + (ZHUYIN_FONT_SIZE/2);
 
-        fill(100); noStroke();
-        textSize(ZHUYIN_FONT_SIZE);
-        
+        fill(100); noStroke(); textSize(ZHUYIN_FONT_SIZE);
         for (let i = 0; i < zhuyinStr.length; i++) {
-            let zChar = zhuyinStr[i];
-            text(zChar, zhuyinX, startY + (i * ZHUYIN_FONT_SIZE * 1.1));
+            text(zhuyinStr[i], zhuyinX, startY + (i * ZHUYIN_FONT_SIZE * 1.1));
         }
         pop();
     }
 
     function handleDrawing() {
         if (pmouseX === 0 && pmouseY === 0) return;
-
         pgDraw.stroke(vocabulary[currentIndex].color);
         pgDraw.strokeWeight(STROKE_SIZE);
         pgDraw.strokeCap(ROUND); pgDraw.strokeJoin(ROUND);
@@ -440,39 +399,29 @@
                  pgDraw.line(x, y, x, y); 
              }
         }
-        
-        if (d > 2) {
-             particles.push(new Particle(mouseX, mouseY, vocabulary[currentIndex].color));
-        }
+        if (d > 2) particles.push(new Particle(mouseX, mouseY, vocabulary[currentIndex].color));
     }
 
     function checkWinCondition() {
-        pgTarget.loadPixels();
-        pgDraw.loadPixels();
+        pgTarget.loadPixels(); pgDraw.loadPixels();
         let targetCount = 0, coveredCount = 0;
         const step = 40; 
-        
         for (let i = 0; i < pgTarget.pixels.length; i += step) {
             if (pgTarget.pixels[i+3] > 100) {
                 targetCount++;
                 if (pgDraw.pixels[i+3] > 100) coveredCount++;
             }
         }
-
         let ratio = targetCount > 0 ? coveredCount / targetCount : 0;
         let percent = Math.min(Math.floor(ratio * 100), 100);
         document.getElementById("progress-fill").style.width = percent + "%";
-
-        if (ratio > 0.85) {
-            gameWin();
-        }
+        if (ratio > 0.85) gameWin();
     }
 
     function gameWin() {
         isWin = true;
         document.getElementById("progress-fill").style.background = "linear-gradient(90deg, #FFD700, #FFA500)";
         for(let i=0; i<30; i++) particles.push(new Particle(width/2, height/2, vocabulary[currentIndex].color));
-        
         if (charIndex >= vocabulary[currentIndex].word.length - 1) {
             document.getElementById("next-btn").innerText = "🎉 捕獲!";
             setTimeout(showReward, 800);
@@ -482,10 +431,7 @@
     function nextStep() {
         if (!isWin) return; 
         if (charIndex < vocabulary[currentIndex].word.length - 1) {
-            charIndex++;
-            resetCanvas();
-            prepareLevel();
-            updateGameUI();
+            charIndex++; resetCanvas(); prepareLevel(); updateGameUI();
         } else {
             showReward();
         }
@@ -514,7 +460,36 @@
     }
 
     window.resetCanvas = function() {
-        pgDraw.clear();
-        isWin = false;
+        pgDraw.clear(); isWin = false;
         document.getElementById("progress-fill").style.width = "0%";
-        document.getElementById("progress-fill").style.background =
+        document.getElementById("progress-fill").style.background = "#4caf50";
+    }
+
+    function drawGrid() {
+        push(); stroke(255, 220, 220); strokeWeight(2);
+        rect(1, 1, width-2, height-2);
+        drawingContext.setLineDash([8, 8]);
+        line(width/2, 0, width/2, height);
+        line(0, height/2, width, height/2);
+        pop();
+    }
+
+    class Particle {
+        constructor(x, y, hex) {
+            this.x = x + random(-10,10); this.y = y + random(-10,10);
+            this.vx = random(-3,3); this.vy = random(-3,3);
+            this.life = 255; this.color = color(hex); this.size = random(8, 15);
+        }
+        update() { this.x += this.vx; this.y += this.vy; this.life -= 15; this.size *= 0.9; }
+        show() { noStroke(); this.color.setAlpha(this.life); fill(this.color); ellipse(this.x, this.y, this.size); }
+    }
+
+    function handleParticles() {
+        for (let i = particles.length-1; i >= 0; i--) {
+            particles[i].update(); particles[i].show();
+            if (particles[i].life <= 0) particles.splice(i,1);
+        }
+    }
+</script>
+</body>
+</html>
