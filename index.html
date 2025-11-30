@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>熊熊 阿吉寶可夢生字大考驗V12</title>
+    <title>熊熊 阿吉寶可夢生字大考驗V13</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
     
@@ -17,10 +17,9 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
             overflow: hidden;
             width: 100vw;
-            height: 100dvh; /* Safari 全螢幕適配 */
+            height: 100dvh; 
             user-select: none; -webkit-user-select: none;
-            /* 允許垂直捲動 (給選單用) */
-            touch-action: pan-y; 
+            touch-action: pan-y; /* 允許垂直捲動 (給選單用) */
         }
 
         /* --- 選單層 --- */
@@ -104,7 +103,7 @@
             overflow: hidden; background: white;
             position: relative;
             margin: 10px;
-            /* 雙重保險：CSS 禁止觸控行為 */
+            /* 關鍵：強制禁止畫布區域的 CSS 觸控行為 */
             touch-action: none; 
         }
 
@@ -166,7 +165,7 @@
 
     <div id="menu-layer">
         <div class="menu-header">
-            <h1>🐻 熊熊 阿吉 👸<br>寶可夢生字大考驗12</h1>
+            <h1>🐻 熊熊 阿吉 👸<br>寶可夢生字大考驗13</h1>
             <div class="menu-subtitle">點擊黑色影子開始挑戰！</div>
         </div>
         <div id="pokemon-grid"></div>
@@ -198,12 +197,10 @@
     </div>
 
 <script>
-    // --- 1. 精簡至 20 隻寶可夢 ---
+    // --- 資料設定 ---
     const vocabulary = [
-        // 1. 皮卡丘 & 路卡利歐 (必備)
         { word: "皮卡丘", zhuyin: ["ㄆㄧˊ","ㄎㄚˇ","ㄑㄧㄡ"], color: "#F7D02C", imageId: "25", id: 25 },
         { word: "路卡利歐", zhuyin: ["ㄌㄨˋ","ㄎㄚˇ","ㄌㄧˋ","ㄡ"], color: "#448CCB", imageId: "448", id: 448 },
-        // 2. 伊布家族 (9隻) - 必備
         { word: "伊布", zhuyin: ["ㄧ","ㄅㄨˋ"], color: "#A8A77A", imageId: "133", id: 133 },
         { word: "水伊布", zhuyin: ["ㄕㄨㄟˇ","ㄧ","ㄅㄨˋ"], color: "#6890F0", imageId: "134", id: 134 },
         { word: "雷伊布", zhuyin: ["ㄌㄟˊ","ㄧ","ㄅㄨˋ"], color: "#F8D030", imageId: "135", id: 135 },
@@ -213,7 +210,6 @@
         { word: "葉伊布", zhuyin: ["ㄧㄝˋ","ㄧ","ㄅㄨˋ"], color: "#78C850", imageId: "470", id: 470 },
         { word: "冰伊布", zhuyin: ["ㄅㄧㄥ","ㄧ","ㄅㄨˋ"], color: "#98D8D8", imageId: "471", id: 471 },
         { word: "仙子伊布", zhuyin: ["ㄒㄧㄢ","ㄗˇ","ㄧ","ㄅㄨˋ"], color: "#F85888", imageId: "700", id: 700 },
-        // 3. 熱門精選
         { word: "妙蛙種子", zhuyin: ["ㄇㄧㄠˋ","ㄨㄚ","ㄓㄨㄥˇ","ㄗˇ"], color: "#78C850", imageId: "1", id: 1 },
         { word: "小火龍", zhuyin: ["ㄒㄧㄠˇ","ㄏㄨㄛˇ","ㄌㄨㄥˊ"], color: "#F08030", imageId: "4", id: 4 },
         { word: "傑尼龜", zhuyin: ["ㄐㄧㄝˊ","ㄋㄧˊ","ㄍㄨㄟ"], color: "#6890F0", imageId: "7", id: 7 },
@@ -227,7 +223,7 @@
 
     vocabulary.forEach(v => v.isUnlocked = false);
 
-    // --- 2. 選單渲染 (網頁載入即執行) ---
+    // --- 立即渲染選單 ---
     function renderMenu() {
         const grid = document.getElementById('pokemon-grid');
         if (!grid) return; 
@@ -263,7 +259,7 @@
         renderMenu();
     });
 
-    // --- 3. p5.js 遊戲核心 ---
+    // --- P5.js 變數 ---
     let currentIndex = 0;
     let charIndex = 0;
     let pgTarget, pgDraw;
@@ -272,7 +268,10 @@
     let isWin = false;
     let STROKE_SIZE = 30;
     let TARGET_FONT_SIZE, ZHUYIN_FONT_SIZE;
-    let p5Canvas; 
+    
+    // ★★★ 關鍵修正：手動記錄座標，不依賴 pmouseX ★★★
+    let pX = 0;
+    let pY = 0;
 
     function setup() {
         let w = window.innerWidth;
@@ -281,19 +280,9 @@
         
         let cnv = createCanvas(canvasSize, canvasSize);
         cnv.parent('canvas-container');
-        p5Canvas = cnv;
 
-        // ★★★ 終極修正：直接對原生 Canvas 綁定事件，防止 iOS 捲動干擾 ★★★
-        // 這是解決「變成虛線/點點」的關鍵
-        let canvasElement = cnv.elt;
-        const preventDefault = (e) => e.preventDefault();
-        
-        // 加上 { passive: false } 才能成功執行 preventDefault()
-        canvasElement.addEventListener('touchstart', preventDefault, { passive: false });
-        canvasElement.addEventListener('touchmove', preventDefault, { passive: false });
-        canvasElement.addEventListener('touchend', preventDefault, { passive: false });
+        // ★★★ 移除舊版複雜的 addEventListener，回歸 p5 標準，但使用 logic 修正 ★★★
 
-        // 其他初始化
         TARGET_FONT_SIZE = canvasSize * 0.55;
         ZHUYIN_FONT_SIZE = TARGET_FONT_SIZE * 0.22;
 
@@ -305,15 +294,6 @@
         pgTarget.textFont(fontName);
     }
 
-    // 保險起見：P5 內部的處理
-    function touchMoved() {
-        // 如果在遊戲層，強制回傳 false (禁止捲動)
-        if (document.getElementById('game-layer').style.display === 'flex') {
-            return false; 
-        }
-        return true; 
-    }
-
     function draw() {
         if (document.getElementById('game-layer').style.display === 'none') return;
 
@@ -323,12 +303,9 @@
         image(pgDraw, 0, 0);
         handleParticles();
 
-        // 支援滑鼠與觸控
-        if ((mouseIsPressed || touches.length > 0) && !isWin) {
-            handleDrawing();
-        }
-
-        if (frameCount % 10 === 0 && !isWin) {
+        // ★★★ 注意：draw() 裡面不再處理畫畫，改由 touchMoved 處理 ★★★
+        // 只負責檢查勝利條件
+        if (frameCount % 15 === 0 && !isWin) {
             checkWinCondition();
         }
 
@@ -336,6 +313,54 @@
             winEffect();
         }
     }
+
+    // --- ★★★ 核心修正：事件驅動繪圖 (Event-Based Drawing) ★★★ ---
+    
+    // 1. 手指/滑鼠按下去時，記錄起始點
+    function startStroke() {
+        if (document.getElementById('game-layer').style.display === 'flex') {
+            pX = mouseX;
+            pY = mouseY;
+            // 畫一個點，避免原地點擊沒反應
+            pgDraw.stroke(vocabulary[currentIndex].color);
+            pgDraw.strokeWeight(STROKE_SIZE);
+            pgDraw.point(mouseX, mouseY); 
+            return false; // 禁止預設行為
+        }
+        return true;
+    }
+
+    function mousePressed() { return startStroke(); }
+    function touchStarted() { return startStroke(); }
+
+    // 2. 手指/滑鼠移動時，直接畫線，不等待 draw() 迴圈
+    function moveStroke() {
+        if (document.getElementById('game-layer').style.display === 'flex') {
+            pgDraw.stroke(vocabulary[currentIndex].color);
+            pgDraw.strokeWeight(STROKE_SIZE);
+            pgDraw.strokeCap(ROUND); 
+            pgDraw.strokeJoin(ROUND);
+
+            // 畫線：從 上次座標(pX,pY) 連到 這次座標(mouseX,mouseY)
+            pgDraw.line(pX, pY, mouseX, mouseY);
+            
+            // 產生粒子 (簡單判定)
+            if (dist(pX, pY, mouseX, mouseY) > 5) {
+                particles.push(new Particle(mouseX, mouseY, vocabulary[currentIndex].color));
+            }
+
+            // 更新座標
+            pX = mouseX;
+            pY = mouseY;
+            
+            return false; // ★★★ 關鍵：這行會告訴瀏覽器「我處理好了，不要捲動」
+        }
+        return true;
+    }
+
+    function mouseDragged() { return moveStroke(); }
+    function touchMoved() { return moveStroke(); }
+
 
     // --- 遊戲邏輯 ---
     function selectPokemon(index) {
@@ -394,25 +419,6 @@
             text(zhuyinStr[i], zhuyinX, startY + (i * ZHUYIN_FONT_SIZE * 1.1));
         }
         pop();
-    }
-
-    function handleDrawing() {
-        if (pmouseX === 0 && pmouseY === 0) return;
-        pgDraw.stroke(vocabulary[currentIndex].color);
-        pgDraw.strokeWeight(STROKE_SIZE);
-        pgDraw.strokeCap(ROUND); pgDraw.strokeJoin(ROUND);
-
-        let d = dist(pmouseX, pmouseY, mouseX, mouseY);
-        // 使用插值補間，即使瀏覽器慢了一幀，線條也會連起來
-        if (d > 0) {
-             let steps = Math.ceil(d / 5);
-             for (let i = 0; i <= steps; i++) {
-                 let x = lerp(pmouseX, mouseX, i/steps);
-                 let y = lerp(pmouseY, mouseY, i/steps);
-                 pgDraw.line(x, y, x, y); 
-             }
-        }
-        if (d > 2) particles.push(new Particle(mouseX, mouseY, vocabulary[currentIndex].color));
     }
 
     function checkWinCondition() {
