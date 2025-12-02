@@ -5,147 +5,128 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>熊熊 阿吉寶可夢生字大考驗V13</title>
+    <title>熊熊 阿吉寶可夢生字大考驗V20</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
     
     <style>
-        /* --- 全局設定 --- */
+        /* --- 全局基礎 --- */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             margin: 0; padding: 0;
             background-color: #f0f4f8;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+            width: 100vw; height: 100dvh; 
             overflow: hidden;
-            width: 100vw;
-            height: 100dvh; 
             user-select: none; -webkit-user-select: none;
-            touch-action: pan-y; /* 允許垂直捲動 (給選單用) */
         }
 
-        /* --- 選單層 --- */
+        /* --- 1. 選單層 --- */
         #menu-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #eef2f5;
+            z-index: 50;
             display: flex; flex-direction: column;
-            z-index: 20;
-            overflow-y: auto; 
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 40px;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
         }
 
         .menu-header {
-            text-align: center; 
-            padding: 20px 10px;
+            text-align: center; padding: 20px 10px;
             padding-top: max(20px, env(safe-area-inset-top));
-            background: white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            position: sticky; top: 0; z-index: 30;
+            background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            position: sticky; top: 0; z-index: 51;
         }
-        .menu-header h1 {
-            margin: 0; font-size: 22px; color: #ffcb05; 
-            -webkit-text-stroke: 1px #3b4cca;
-            text-shadow: 2px 2px 0 #3b4cca;
-            display: flex; justify-content: center; align-items: center; gap: 10px;
-        }
+        .menu-header h1 { margin: 0; font-size: 22px; color: #ffcb05; -webkit-text-stroke: 1px #3b4cca; text-shadow: 2px 2px 0 #3b4cca; }
         .menu-subtitle { font-size: 14px; color: #666; margin-top: 5px; }
 
         #pokemon-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            padding: 20px;
-            padding-bottom: max(40px, env(safe-area-inset-bottom));
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 20px;
+            padding-bottom: 100px; 
         }
 
         .poke-card {
-            background: white; border-radius: 15px;
-            padding: 10px;
+            background: white; border-radius: 15px; padding: 10px;
             display: flex; flex-direction: column; align-items: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.1s;
-            cursor: pointer;
-            position: relative;
-            min-height: 120px;
+            position: relative; min-height: 120px;
         }
-        .poke-card:active { transform: scale(0.95); }
-        
-        .poke-id { 
-            position: absolute; top: 5px; left: 8px; 
-            font-size: 10px; color: #999; font-family: monospace; font-weight: bold;
-        }
-
-        .poke-img {
-            width: 80px; height: 80px; object-fit: contain;
-            margin-top: 10px;
-            transition: filter 0.3s;
-        }
-
+        .poke-card:active { transform: scale(0.95); background-color: #eee; }
+        .poke-id { position: absolute; top: 5px; left: 8px; font-size: 10px; color: #999; font-weight: bold; }
+        .poke-img { width: 80px; height: 80px; object-fit: contain; margin-top: 10px; }
         .locked .poke-img { filter: brightness(0) opacity(0.8); }
         .locked .poke-name { color: #ccc; }
-        .unlocked .poke-img { filter: none; filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6)); }
+        .unlocked .poke-img { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6)); }
         .unlocked .poke-name { color: #333; font-weight: bold; }
-        .unlocked::after { content: "👑"; position: absolute; top: -5px; right: -5px; font-size: 20px; }
         .poke-name { margin-top: 5px; font-size: 14px; text-align: center; }
 
-        /* --- 遊戲層 --- */
+
+        /* --- 2. 遊戲層 --- */
         #game-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none;
-            flex-direction: column; align-items: center; justify-content: center;
             background-color: #f0f4f8;
             z-index: 10;
-            padding-top: env(safe-area-inset-top);
+            display: none; 
+            flex-direction: column; 
         }
 
-        #canvas-container {
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            border-radius: 20px;
-            overflow: hidden; background: white;
+        .game-top-bar {
+            padding: 10px; 
+            padding-top: max(15px, env(safe-area-inset-top));
+            text-align: center; background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            flex-shrink: 0; 
+        }
+        .game-top-bar h2 { margin: 0; font-size: 22px; color: #333; }
+
+        #canvas-wrapper {
+            flex-grow: 1; 
             position: relative;
-            margin: 10px;
-            /* 關鍵：強制禁止畫布區域的 CSS 觸控行為 */
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
             touch-action: none; 
         }
 
-        .ui-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            display: flex; flex-direction: column; justify-content: space-between;
-            padding: 15px; box-sizing: border-box;
+        #p5-container {
+            border-radius: 20px;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
-        .game-header {
-            text-align: center; background: rgba(255,255,255,0.9);
-            border-radius: 15px; padding: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        /* 底部控制區 - Z-Index 設為 9999 確保在最上層 */
+        .game-bottom-bar {
+            padding: 15px;
+            padding-bottom: max(30px, env(safe-area-inset-bottom));
+            background: white;
+            border-top: 1px solid #eee;
+            flex-shrink: 0; 
+            display: flex; flex-direction: column; gap: 15px;
+            z-index: 9999; 
+            position: relative;
         }
-        .game-header h2 { margin: 0; font-size: 24px; color: #333; }
 
-        .game-footer {
-            text-align: center; pointer-events: auto; padding-bottom: 20px;
-            display: flex; justify-content: center; align-items: center; gap: 10px;
+        #progress-container { width: 100%; display: flex; justify-content: center; }
+        #progress-bar {
+            width: 80%; height: 10px; background: #eee; border-radius: 10px;
+            border: 2px solid #ccc; overflow: hidden;
         }
+        #progress-fill { height: 100%; width: 0%; background: #4caf50; transition: width 0.2s; }
 
+        .btn-group { display: flex; justify-content: center; gap: 20px; }
         .btn {
             background: #ffcb05; border: 3px solid #3b4cca; color: #3b4cca;
-            padding: 8px 20px; font-size: 16px; font-weight: bold; border-radius: 50px;
+            padding: 12px 25px; font-size: 18px; font-weight: bold; border-radius: 50px;
             cursor: pointer; box-shadow: 0 4px 0 #2a3693;
-            -webkit-tap-highlight-color: transparent;
+            user-select: none; min-width: 80px; 
+            /* 讓按鈕對觸控更友善 */
+            touch-action: manipulation;
         }
         .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #2a3693; }
         .btn-red { background: #fff; border-color: #ff5555; color: #ff5555; box-shadow: 0 4px 0 #cc0000; }
         .btn-red:active { box-shadow: 0 0 0 #cc0000; }
 
-        #progress-bar {
-            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
-            width: 200px; height: 10px; background: #eee; border-radius: 10px;
-            border: 2px solid #ccc; overflow: hidden;
-        }
-        #progress-fill { height: 100%; width: 0%; background: #4caf50; transition: width 0.2s; }
-
         #reward-popup {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 100;
+            background: rgba(0,0,0,0.85); z-index: 10000;
             display: none; justify-content: center; align-items: center;
         }
         .reward-card {
@@ -157,7 +138,6 @@
         }
         .reward-card img { width: 220px; height: 220px; object-fit: contain; }
         .reward-text { font-size: 24px; font-weight: bold; color: #d32f2f; margin: 10px 0; }
-        
         @keyframes popUp { from { transform: scale(0.5); } to { transform: scale(1); } }
     </style>
 </head>
@@ -165,24 +145,27 @@
 
     <div id="menu-layer">
         <div class="menu-header">
-            <h1>🐻 熊熊 阿吉 👸<br>寶可夢生字大考驗13</h1>
+            <h1>🐻 熊熊 阿吉 👸<br>寶可夢生字大考驗V20</h1>
             <div class="menu-subtitle">點擊黑色影子開始挑戰！</div>
         </div>
         <div id="pokemon-grid"></div>
     </div>
 
     <div id="game-layer">
-        <div id="canvas-container">
-            <div class="ui-overlay">
-                <div class="game-header">
-                    <h2 id="question-text">題目</h2>
-                </div>
+        <div class="game-top-bar">
+            <h2 id="question-text">題目</h2>
+        </div>
+        <div id="canvas-wrapper">
+            <div id="p5-container"></div>
+        </div>
+        <div class="game-bottom-bar">
+            <div id="progress-container">
                 <div id="progress-bar"><div id="progress-fill"></div></div>
-                <div class="game-footer">
-                    <button class="btn btn-red" onclick="returnToMenu()">放棄</button>
-                    <button class="btn btn-red" onclick="resetCanvas()">重寫</button>
-                    <button class="btn" id="next-btn" onclick="nextStep()">下一字</button>
-                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-red" onclick="returnToMenu()">放棄</button>
+                <button class="btn btn-red" onclick="resetCanvas(true)">重寫</button>
+                <button class="btn" id="next-btn" onclick="nextStep()">下一字</button>
             </div>
         </div>
     </div>
@@ -197,7 +180,6 @@
     </div>
 
 <script>
-    // --- 資料設定 ---
     const vocabulary = [
         { word: "皮卡丘", zhuyin: ["ㄆㄧˊ","ㄎㄚˇ","ㄑㄧㄡ"], color: "#F7D02C", imageId: "25", id: 25 },
         { word: "路卡利歐", zhuyin: ["ㄌㄨˋ","ㄎㄚˇ","ㄌㄧˋ","ㄡ"], color: "#448CCB", imageId: "448", id: 448 },
@@ -223,16 +205,15 @@
 
     vocabulary.forEach(v => v.isUnlocked = false);
 
-    // --- 立即渲染選單 ---
-    function renderMenu() {
+    // --- 選單建立 ---
+    function initMenu() {
         const grid = document.getElementById('pokemon-grid');
-        if (!grid) return; 
-
         grid.innerHTML = ''; 
         vocabulary.forEach((poke, index) => {
             const card = document.createElement('div');
             card.className = `poke-card ${poke.isUnlocked ? 'unlocked' : 'locked'}`;
-            card.onclick = () => selectPokemon(index);
+            // 使用 onclick 配合 CSS 修正
+            card.onclick = () => startGame(index);
 
             const idTag = document.createElement('div');
             idTag.className = 'poke-id';
@@ -242,7 +223,6 @@
             img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${poke.imageId}.png`;
             img.className = 'poke-img';
             img.loading = "lazy";
-            img.alt = poke.word; 
 
             const name = document.createElement('div');
             name.className = 'poke-name';
@@ -254,48 +234,93 @@
             grid.appendChild(card);
         });
     }
+    document.addEventListener("DOMContentLoaded", initMenu);
 
-    document.addEventListener("DOMContentLoaded", function() {
-        renderMenu();
-    });
-
-    // --- P5.js 變數 ---
-    let currentIndex = 0;
+    // --- P5.js 核心 ---
+    let currentIndex = -1; 
     let charIndex = 0;
     let pgTarget, pgDraw;
     let particles = [];
     let canvasSize;
     let isWin = false;
+    let isTransitioning = false;
     let STROKE_SIZE = 30;
     let TARGET_FONT_SIZE, ZHUYIN_FONT_SIZE;
-    
-    // ★★★ 關鍵修正：手動記錄座標，不依賴 pmouseX ★★★
-    let pX = 0;
-    let pY = 0;
+    let pX = 0, pY = 0;
+    let isDrawing = false; 
 
     function setup() {
+        pixelDensity(1); // 確保 iPhone 判定準確
+        
         let w = window.innerWidth;
         let h = window.innerHeight;
-        canvasSize = Math.min(w, h * 0.70) - 20; 
+        let availableH = h - 220; 
+        canvasSize = Math.min(w - 30, availableH); 
         
         let cnv = createCanvas(canvasSize, canvasSize);
-        cnv.parent('canvas-container');
+        cnv.parent('p5-container');
 
-        // ★★★ 移除舊版複雜的 addEventListener，回歸 p5 標準，但使用 logic 修正 ★★★
+        let canvasEl = cnv.elt;
+        
+        canvasEl.addEventListener('touchstart', function(e) {
+            e.preventDefault(); 
+            if(isWin || isTransitioning) return; 
+            isDrawing = true;
+            let rect = canvasEl.getBoundingClientRect();
+            let touch = e.touches[0];
+            let x = touch.clientX - rect.left;
+            let y = touch.clientY - rect.top;
+            pX = x; pY = y;
+            
+            if(currentIndex >= 0) {
+                pgDraw.stroke(vocabulary[currentIndex].color);
+                pgDraw.strokeWeight(STROKE_SIZE);
+                pgDraw.point(x, y);
+            }
+        }, { passive: false });
+
+        canvasEl.addEventListener('touchmove', function(e) {
+            e.preventDefault(); 
+            if (!isDrawing || isWin || isTransitioning) return;
+            let rect = canvasEl.getBoundingClientRect();
+            let touch = e.touches[0];
+            let x = touch.clientX - rect.left;
+            let y = touch.clientY - rect.top;
+
+            if(currentIndex >= 0) {
+                pgDraw.stroke(vocabulary[currentIndex].color);
+                pgDraw.strokeWeight(STROKE_SIZE);
+                pgDraw.strokeCap(ROUND); pgDraw.strokeJoin(ROUND);
+                pgDraw.line(pX, pY, x, y);
+
+                if (dist(pX, pY, x, y) > 5) {
+                    particles.push(new Particle(x, y, vocabulary[currentIndex].color));
+                }
+            }
+            pX = x; pY = y;
+        }, { passive: false });
+
+        // V20 修正：將過關判定移到 touchend (手指放開時)，避免寫字卡頓
+        canvasEl.addEventListener('touchend', function(e) { 
+            isDrawing = false; 
+            if(currentIndex >= 0 && !isWin && !isTransitioning) {
+                checkWinCondition(); // 手指放開才檢查
+            }
+        }, { passive: false });
+
+        canvasEl.addEventListener('mousedown', function(e) { isDrawing = true; pX = mouseX; pY = mouseY; });
 
         TARGET_FONT_SIZE = canvasSize * 0.55;
         ZHUYIN_FONT_SIZE = TARGET_FONT_SIZE * 0.22;
-
         pgTarget = createGraphics(canvasSize, canvasSize);
         pgDraw = createGraphics(canvasSize, canvasSize);
-
         let fontName = "-apple-system, 'Microsoft JhengHei', sans-serif";
         textFont(fontName);
         pgTarget.textFont(fontName);
     }
 
     function draw() {
-        if (document.getElementById('game-layer').style.display === 'none') return;
+        if (currentIndex === -1 || document.getElementById('game-layer').style.display === 'none') return;
 
         background(255);
         drawGrid();
@@ -303,86 +328,99 @@
         image(pgDraw, 0, 0);
         handleParticles();
 
-        // ★★★ 注意：draw() 裡面不再處理畫畫，改由 touchMoved 處理 ★★★
-        // 只負責檢查勝利條件
-        if (frameCount % 15 === 0 && !isWin) {
-            checkWinCondition();
+        // PC 繪圖支援
+        if (mouseIsPressed && isDrawing && !touches.length && !isWin && !isTransitioning) {
+             pgDraw.stroke(vocabulary[currentIndex].color);
+             pgDraw.strokeWeight(STROKE_SIZE);
+             pgDraw.strokeCap(ROUND); pgDraw.strokeJoin(ROUND);
+             pgDraw.line(pmouseX, pmouseY, mouseX, mouseY);
         }
 
+        // 移除 draw 迴圈中的 checkWinCondition，改由 touchend 觸發，節省效能並防止誤判
+        
         if (isWin) {
             winEffect();
         }
     }
 
-    // --- ★★★ 核心修正：事件驅動繪圖 (Event-Based Drawing) ★★★ ---
-    
-    // 1. 手指/滑鼠按下去時，記錄起始點
-    function startStroke() {
-        if (document.getElementById('game-layer').style.display === 'flex') {
-            pX = mouseX;
-            pY = mouseY;
-            // 畫一個點，避免原地點擊沒反應
-            pgDraw.stroke(vocabulary[currentIndex].color);
-            pgDraw.strokeWeight(STROKE_SIZE);
-            pgDraw.point(mouseX, mouseY); 
-            return false; // 禁止預設行為
-        }
-        return true;
-    }
+    // --- 遊戲控制邏輯 ---
 
-    function mousePressed() { return startStroke(); }
-    function touchStarted() { return startStroke(); }
-
-    // 2. 手指/滑鼠移動時，直接畫線，不等待 draw() 迴圈
-    function moveStroke() {
-        if (document.getElementById('game-layer').style.display === 'flex') {
-            pgDraw.stroke(vocabulary[currentIndex].color);
-            pgDraw.strokeWeight(STROKE_SIZE);
-            pgDraw.strokeCap(ROUND); 
-            pgDraw.strokeJoin(ROUND);
-
-            // 畫線：從 上次座標(pX,pY) 連到 這次座標(mouseX,mouseY)
-            pgDraw.line(pX, pY, mouseX, mouseY);
-            
-            // 產生粒子 (簡單判定)
-            if (dist(pX, pY, mouseX, mouseY) > 5) {
-                particles.push(new Particle(mouseX, mouseY, vocabulary[currentIndex].color));
-            }
-
-            // 更新座標
-            pX = mouseX;
-            pY = mouseY;
-            
-            return false; // ★★★ 關鍵：這行會告訴瀏覽器「我處理好了，不要捲動」
-        }
-        return true;
-    }
-
-    function mouseDragged() { return moveStroke(); }
-    function touchMoved() { return moveStroke(); }
-
-
-    // --- 遊戲邏輯 ---
-    function selectPokemon(index) {
+    function startGame(index) {
         currentIndex = index;
         charIndex = 0;
+        isWin = false;
+        isTransitioning = false;
+        
         document.getElementById('menu-layer').style.display = 'none';
         document.getElementById('game-layer').style.display = 'flex';
         
-        if (pgDraw) resetCanvas(); 
-        if (pgTarget) prepareLevel();
+        resetCanvas(true); // 強制重置
+        prepareLevel();
         updateGameUI();
     }
 
-    function returnToMenu() {
+    // 將函數掛載到 window，確保 HTML onclick 能呼叫
+    window.returnToMenu = function() {
+        currentIndex = -1; // 清除選擇
+        isWin = false;
+        isTransitioning = false;
+        
         document.getElementById('game-layer').style.display = 'none';
         document.getElementById('menu-layer').style.display = 'flex';
-        renderMenu(); 
+        
+        pgDraw.clear();
+        refreshMenuStatus();
+    };
+    
+    function refreshMenuStatus() {
+        const cards = document.querySelectorAll('.poke-card');
+        cards.forEach((card, index) => {
+            if(vocabulary[index].isUnlocked) {
+                card.className = 'poke-card unlocked';
+                card.querySelector('.poke-name').innerText = vocabulary[index].word;
+            }
+        });
     }
+
+    window.resetCanvas = function(force = false) {
+        // 如果不是強制重置，且正在轉場中，則忽略
+        if(!force && isTransitioning) return;
+        
+        pgDraw.clear();
+        isWin = false;
+        // 這裡不重置 isTransitioning，以免打斷轉場邏輯
+        
+        document.getElementById("progress-fill").style.width = "0%";
+        document.getElementById("progress-fill").style.background = "#4caf50";
+    };
+
+    window.nextStep = function() {
+        if (charIndex < vocabulary[currentIndex].word.length - 1) {
+            performNextStep();
+        } else {
+            showReward(); // 最後一字直接顯示獎勵
+        }
+    };
+
+    // 真正執行跳轉的邏輯
+    function performNextStep() {
+        charIndex++;
+        // ★ 關鍵：解鎖狀態，確保新的一字可以開始寫 ★
+        isWin = false;
+        isTransitioning = false;
+        
+        pgDraw.clear(); // 清空舊筆跡
+        prepareLevel(); // 準備新字
+        updateGameUI();
+    }
+    
+    window.closeRewardAndReturn = function() {
+        document.getElementById("reward-popup").style.display = "none";
+        returnToMenu();
+    };
 
     function prepareLevel() {
         pgDraw.clear();
-        isWin = false;
         pgTarget.clear();
         pgTarget.fill(0); pgTarget.noStroke(); pgTarget.textAlign(CENTER, CENTER);
         
@@ -391,13 +429,15 @@
         pgTarget.textSize(TARGET_FONT_SIZE);
         pgTarget.text(char, width/2 - TARGET_FONT_SIZE*0.15, height/2 - TARGET_FONT_SIZE*0.05);
 
+        let nextBtn = document.getElementById("next-btn");
+        nextBtn.innerText = "下一字";
+        nextBtn.style.display = "block";
         document.getElementById("progress-fill").style.width = "0%";
         document.getElementById("progress-fill").style.background = "#4caf50";
-        document.getElementById("next-btn").innerText = "下一字";
-        document.getElementById("next-btn").style.display = "block";
     }
 
     function drawGuideCharacter() {
+        if(currentIndex === -1) return;
         let data = vocabulary[currentIndex];
         let char = data.word[charIndex];
         let zhuyinStr = data.zhuyin[charIndex];
@@ -424,36 +464,42 @@
     function checkWinCondition() {
         pgTarget.loadPixels(); pgDraw.loadPixels();
         let targetCount = 0, coveredCount = 0;
-        const step = 40; 
+        const step = 4; 
+        
         for (let i = 0; i < pgTarget.pixels.length; i += step) {
-            if (pgTarget.pixels[i+3] > 100) {
+            if (pgTarget.pixels[i+3] > 150) {
                 targetCount++;
                 if (pgDraw.pixels[i+3] > 100) coveredCount++;
             }
         }
+        
         let ratio = targetCount > 0 ? coveredCount / targetCount : 0;
         let percent = Math.min(Math.floor(ratio * 100), 100);
         document.getElementById("progress-fill").style.width = percent + "%";
-        if (ratio > 0.85) gameWin();
+        
+        // V20: 判定設為 0.85
+        if (ratio > 0.85) {
+            gameWin();
+        }
     }
 
     function gameWin() {
+        if (isWin || isTransitioning) return;
         isWin = true;
+        isTransitioning = true; // 鎖定輸入
         document.getElementById("progress-fill").style.background = "linear-gradient(90deg, #FFD700, #FFA500)";
+        
         for(let i=0; i<30; i++) particles.push(new Particle(width/2, height/2, vocabulary[currentIndex].color));
-        if (charIndex >= vocabulary[currentIndex].word.length - 1) {
-            document.getElementById("next-btn").innerText = "🎉 捕獲!";
-            setTimeout(showReward, 800);
-        }
-    }
 
-    function nextStep() {
-        if (!isWin) return; 
-        if (charIndex < vocabulary[currentIndex].word.length - 1) {
-            charIndex++; resetCanvas(); prepareLevel(); updateGameUI();
-        } else {
-            showReward();
-        }
+        // 1.5秒後自動執行
+        setTimeout(() => {
+            if (charIndex < vocabulary[currentIndex].word.length - 1) {
+                performNextStep();
+            } else {
+                document.getElementById("next-btn").innerText = "🎉 捕獲!";
+                setTimeout(showReward, 500);
+            }
+        }, 1500); 
     }
 
     function showReward() {
@@ -465,23 +511,12 @@
         for(let i=0; i<50; i++) particles.push(new Particle(random(width), random(height), data.color));
     }
 
-    function closeRewardAndReturn() {
-        document.getElementById("reward-popup").style.display = "none";
-        returnToMenu();
-    }
-
     function updateGameUI() {
         let data = vocabulary[currentIndex];
         document.getElementById('question-text').innerHTML = `
             <span style="color:#555">題目：</span>
             <span style="color:${data.color}; font-size:1.2em;">${data.word}</span>
         `;
-    }
-
-    window.resetCanvas = function() {
-        pgDraw.clear(); isWin = false;
-        document.getElementById("progress-fill").style.width = "0%";
-        document.getElementById("progress-fill").style.background = "#4caf50";
     }
 
     function drawGrid() {
@@ -508,6 +543,10 @@
             particles[i].update(); particles[i].show();
             if (particles[i].life <= 0) particles.splice(i,1);
         }
+    }
+    
+    function winEffect() {
+        if(frameCount % 10 === 0) particles.push(new Particle(random(width), random(height), vocabulary[currentIndex].color));
     }
 </script>
 </body>
